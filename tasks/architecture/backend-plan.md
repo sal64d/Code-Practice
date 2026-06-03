@@ -71,19 +71,21 @@ Storage and Postgres do not share one transaction. Use upload-first workflows.
 ### Publish Problem
 
 1. Browser validates MDX frontmatter.
-2. Browser uploads raw MDX to `problem-mdx`.
-3. Browser writes/updates draft metadata.
-4. Browser calls `publish_problem_version`.
-5. RPC validates structured metadata and publishes atomically.
+2. Browser generates a draft `problemVersionId`.
+3. Browser uploads raw MDX to `problem-mdx/{problemId}/{problemVersionId}/{contentHash}.mdx`.
+4. Browser writes/updates draft metadata with that id and Storage path.
+5. Browser calls `publish_problem_version`.
+6. RPC validates structured metadata and publishes atomically.
 
 If RPC fails after upload, the MDX object may be orphaned. This is acceptable in v1 and can be cleaned later.
 
 ### Commit Submission
 
 1. Browser runs visible tests.
-2. Browser uploads immutable code snapshot to `submission-code`.
-3. Browser calls `commit_submission`.
-4. RPC inserts metadata, progress, solved state, activity, and retention changes.
+2. Browser generates a `submissionId`.
+3. Browser uploads immutable code snapshot to `submission-code` using that id in the path.
+4. Browser calls `commit_submission` with the same id and Storage path.
+5. RPC inserts metadata, progress, solved state, activity, and retention changes.
 
 If RPC fails after upload, the code object may be orphaned. This is acceptable in v1.
 

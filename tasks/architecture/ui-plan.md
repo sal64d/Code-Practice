@@ -200,10 +200,11 @@ Upload flow:
 1. User opens `/upload`.
 2. User pastes MDX or selects an MDX file.
 3. Browser parses frontmatter and validates schema.
-4. Valid draft can be uploaded to `problem-mdx`.
-5. Parsed metadata is written to `problem_versions` as `draft`.
-6. Publish calls `publish_problem_version`.
-7. Publish inserts activity event through the RPC.
+4. Browser generates a `problemVersionId` for the draft.
+5. Valid draft can be uploaded to `problem-mdx/{problemId}/{problemVersionId}/{contentHash}.mdx`.
+6. Parsed metadata is written to `problem_versions` as `draft` using that id and Storage path.
+7. Publish calls `publish_problem_version`.
+8. Publish inserts activity event through the RPC.
 
 Validation timing:
 
@@ -323,9 +324,10 @@ Execution strategy:
 3. Runner executes each test in isolation.
 4. UI compares stdout by normalizing line endings and trimming trailing whitespace.
 5. UI shows per-case results.
-6. If run completes, UI uploads code snapshot to `submission-code`.
-7. UI calls `commit_submission`.
-8. UI invalidates submissions, progress, and activity queries.
+6. If run completes, UI generates a `submissionId`.
+7. UI uploads code snapshot to `submission-code` using the generated id in the path.
+8. UI calls `commit_submission` with the same id and Storage path.
+9. UI invalidates submissions, progress, and activity queries.
 
 Result display:
 
@@ -432,12 +434,14 @@ Opening the problem/editor also inserts a durable `started_attempting` event.
 
 MDX:
 
+- Generate a draft problem version id before upload.
 - Upload raw MDX to `problem-mdx`.
 - Store parsed metadata in Postgres.
 - Publish through RPC.
 
 Submitted code:
 
+- Generate a submission id before upload.
 - Upload immutable source snapshot to `submission-code`.
 - Store `code_storage_path` and `code_preview` in `submissions`.
 - Download full source only when a submission detail is opened.

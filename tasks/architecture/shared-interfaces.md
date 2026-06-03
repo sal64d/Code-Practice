@@ -127,15 +127,17 @@ Validation:
 
 ```ts
 interface ProblemVersionDocument {
+  problemVersionId: ProblemVersionId;
   problem: ProblemFrontmatter;
   mdxBody: string;
   mdxStoragePath: StoragePath;
   contentHash: string;
-  versionNumber: number;
+  versionNumber?: number;
 }
 ```
 
 Raw MDX lives in Storage. Postgres stores parsed metadata, content hash, version state, and the Storage path.
+Draft versions use a client-generated `problemVersionId` before upload. `versionNumber` is assigned when the draft is published.
 
 ## Runner Contract
 
@@ -234,6 +236,7 @@ Draft behavior:
 
 ```ts
 interface SubmissionCreateInput {
+  id: SubmissionId;
   usernameKey: UsernameKey;
   problemId: ProblemId;
   problemVersionId: ProblemVersionId;
@@ -245,7 +248,6 @@ interface SubmissionCreateInput {
 }
 
 interface SubmissionRecord extends SubmissionCreateInput {
-  id: SubmissionId;
   passed: number;
   total: number;
   solved: boolean;
@@ -257,7 +259,8 @@ interface SubmissionRecord extends SubmissionCreateInput {
 Submission behavior:
 
 - The browser runs tests.
-- The browser uploads immutable code to Storage.
+- The browser generates `SubmissionId`.
+- The browser uploads immutable code to Storage using that id in the path.
 - The browser calls Supabase RPC `commit_submission`.
 - The RPC inserts submission metadata, updates progress, inserts activity events, records solved versions when applicable, and logically prunes older non-pinned submissions.
 
@@ -349,7 +352,7 @@ Buckets:
 Paths:
 
 ```txt
-problem-mdx/{problemId}/v{versionNumber}/{contentHash}.mdx
+problem-mdx/{problemId}/{problemVersionId}/{contentHash}.mdx
 submission-code/{usernameKey}/{problemId}/{problemVersionId}/{language}/{submissionId}.{ext}
 ```
 

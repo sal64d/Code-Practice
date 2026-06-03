@@ -94,7 +94,7 @@ Stores draft, published, and archived versions.
 problem_versions (
   id uuid primary key default gen_random_uuid(),
   problem_id text not null references problems(id),
-  version_number integer not null,
+  version_number integer null,
   status problem_version_status not null default 'draft',
   title text not null,
   difficulty difficulty not null,
@@ -108,10 +108,17 @@ problem_versions (
   published_at timestamptz null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (problem_id, version_number),
   unique (problem_id, content_hash),
   check (visible_test_count > 0)
 )
+```
+
+Draft rows may have `version_number = null`. Publishing assigns the next version number atomically. Add a partial unique index:
+
+```sql
+create unique index problem_versions_unique_number
+on problem_versions (problem_id, version_number)
+where version_number is not null;
 ```
 
 Published versions must have valid parsed metadata. Full MDX safety is not enforced by Postgres; only structured frontmatter invariants are enforced.
@@ -255,7 +262,7 @@ Create private buckets:
 Paths:
 
 ```txt
-problem-mdx/{problemId}/v{versionNumber}/{contentHash}.mdx
+problem-mdx/{problemId}/{problemVersionId}/{contentHash}.mdx
 submission-code/{usernameKey}/{problemId}/{problemVersionId}/{language}/{submissionId}.{ext}
 ```
 
@@ -295,13 +302,13 @@ Behavior:
 - Validates `problem_versions.status = 'draft'`.
 - Validates parsed frontmatter fields Postgres can check.
 - Creates or updates `problems`.
-- Assigns next `version_number` if needed.
+- Assigns the next `version_number` atomically.
 - Marks version `published`.
 - Updates `problems.current_published_version_id`.
 - Inserts `published_problem` activity event.
 - Returns published problem/version metadata.
 
-The MDX object must be uploaded before this RPC is called.
+The MDX object must be uploaded before this RPC is called. The browser may generate the draft `problem_versions.id` before upload so the Storage path can include the version id.
 
 ### `commit_submission`
 
@@ -312,7 +319,7 @@ Input:
 Behavior:
 
 - Validates problem version exists and language is supported.
-- Inserts immutable submission metadata.
+- Inserts immutable submission metadata using the client-generated submission id from the input.
 - Marks `solved = passed = total`.
 - Upserts `problem_progress`.
 - Upserts `language_progress`.
