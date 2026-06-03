@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '../supabase/client.ts'
-import type { ProfileRow } from '../../types/database.ts'
+import type { ProfileRow } from '../../types/supabase.ts'
 
 export async function upsertProfile(
   usernameKey: string,
