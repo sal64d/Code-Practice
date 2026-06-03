@@ -61,8 +61,8 @@ end;
 $$;
 
 create or replace function public.upsert_profile(
-  username_key text,
-  display_username text
+  p_username_key text,
+  p_display_username text
 )
 returns public.profiles
 language plpgsql
@@ -72,13 +72,11 @@ as $$
 declare
   v_profile public.profiles;
 begin
-  if upsert_profile.username_key is null
-    or upsert_profile.username_key !~ '^[a-z0-9_-]{1,40}$' then
+  if p_username_key is null or p_username_key !~ '^[a-z0-9_-]{1,40}$' then
     raise exception 'invalid username_key';
   end if;
 
-  if upsert_profile.display_username is null
-    or btrim(upsert_profile.display_username) = '' then
+  if p_display_username is null or btrim(p_display_username) = '' then
     raise exception 'display_username is required';
   end if;
 
@@ -88,8 +86,8 @@ begin
     last_auth_user_id
   )
   values (
-    upsert_profile.username_key,
-    btrim(upsert_profile.display_username),
+    p_username_key,
+    btrim(p_display_username),
     auth.uid()
   )
   on conflict (username_key) do update

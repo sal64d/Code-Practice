@@ -356,8 +356,8 @@ export type Database = {
     Functions: {
       upsert_profile: {
         Args: {
-          username_key: string
-          display_username: string
+          p_username_key: string
+          p_display_username: string
         }
         Returns: Database['public']['Tables']['profiles']['Row']
       }

@@ -7,8 +7,8 @@ export async function upsertProfile(
 ): Promise<ProfileRow> {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase.rpc('upsert_profile', {
-    username_key: usernameKey,
-    display_username: displayUsername,
+    p_username_key: usernameKey,
+    p_display_username: displayUsername,
   })
 
   if (error) {
