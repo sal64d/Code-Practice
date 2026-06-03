@@ -72,11 +72,13 @@ as $$
 declare
   v_profile public.profiles;
 begin
-  if username_key is null or username_key !~ '^[a-z0-9_-]{1,40}$' then
+  if upsert_profile.username_key is null
+    or upsert_profile.username_key !~ '^[a-z0-9_-]{1,40}$' then
     raise exception 'invalid username_key';
   end if;
 
-  if display_username is null or btrim(display_username) = '' then
+  if upsert_profile.display_username is null
+    or btrim(upsert_profile.display_username) = '' then
     raise exception 'display_username is required';
   end if;
 
@@ -86,8 +88,8 @@ begin
     last_auth_user_id
   )
   values (
-    username_key,
-    btrim(display_username),
+    upsert_profile.username_key,
+    btrim(upsert_profile.display_username),
     auth.uid()
   )
   on conflict (username_key) do update
