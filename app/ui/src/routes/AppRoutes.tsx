@@ -4,6 +4,8 @@ import { AppShell } from '../components/AppShell.tsx'
 import { RequireUsername } from '../components/RequireUsername.tsx'
 import { LoginPage } from '../pages/LoginPage.tsx'
 import { PlaceholderPage } from '../pages/PlaceholderPage.tsx'
+import { ProblemListPage } from '../pages/ProblemListPage.tsx'
+import { ProblemDetailPage } from '../pages/ProblemDetailPage.tsx'
 
 function CatchAllRedirect() {
   return <Navigate to="/problems" replace />
@@ -16,24 +18,8 @@ export function AppRoutes() {
       <Route element={<RequireUsername />}>
         <Route element={<AppShell />}>
           <Route path="/" element={<Navigate to="/problems" replace />} />
-          <Route
-            path="/problems"
-            element={
-              <PlaceholderPage
-                title="Problems"
-                description="Problem list will load from Supabase after seeding (US-011)."
-              />
-            }
-          />
-          <Route
-            path="/problems/:problemId"
-            element={
-              <PlaceholderPage
-                title="Problem"
-                description="Problem detail and editor arrive in US-012–US-016."
-              />
-            }
-          />
+          <Route path="/problems" element={<ProblemListPage />} />
+          <Route path="/problems/:problemId" element={<ProblemDetailPage />} />
           <Route
             path="/progress"
             element={

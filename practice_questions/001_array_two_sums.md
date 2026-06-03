@@ -1,5 +1,15 @@
-# 1: Two Sum
-
+---
+title: Two Sum
+difficulty: easy
+tags: ["array", "hash_table"]
+supportedLanguages: ["javascript"]
+tests:
+  - stdin: "[2, 7, 11, 15]\n9"
+    expectedStdout: "[0,1]"
+  - stdin: "[3, 2, 4]\n6"
+    expectedStdout: "[1,2]"
+  - stdin: "[3, 3]\n6"
+    expectedStdout: "[0,1]"
 ---
 
 ## Problem Statement
@@ -24,19 +34,3 @@ You can return the answer in any order.
 #### Example 3:
 - **Input:** `nums = [3, 3]`, `target = 6`
 - **Output:** `[0, 1]`
-
----
-
-### Test cases
-
-### Test Case 1: Target involves Negative Numbers
-- **Input:** `nums = [-3, 4, 3, 90]`, `target = 0`
-- **Output:** `[0, 2]`
-
-### Test Case 2: Large Gap Between Indices
-- **Input:** `nums = [1, 5, 8, 12, 3, 2, 14]`, `target = 15`
-- **Output:** `[0, 6]`
-
-### Test Case 3: Duplicate values, but single solution pair
-- **Input:** `nums = [2, 5, 5, 11]`, `target = 10`
-- **Output:** `[1, 2]`
