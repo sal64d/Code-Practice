@@ -3,6 +3,9 @@ import { BrowserRouter } from 'react-router'
 import { type ReactNode, useState } from 'react'
 
 import { UsernameSessionProvider } from '../context/UsernameSessionProvider.tsx'
+import { ThemeProvider } from '@mui/material/styles'
+import CssBaseline from '@mui/material/CssBaseline'
+import { theme } from '../design-system/theme'
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -18,10 +21,13 @@ export function AppProviders({ children }: { children: ReactNode }) {
   )
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <UsernameSessionProvider>{children}</UsernameSessionProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <UsernameSessionProvider>{children}</UsernameSessionProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ThemeProvider>
   )
 }
