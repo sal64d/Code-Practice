@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../supabase/client.ts'
+import { getMdxBody } from '../mdx/parseFrontmatter.ts'
 
 export interface ProblemListItem {
   id: string
@@ -51,7 +52,7 @@ export interface ProblemVersion {
 export async function getProblemAndVersion(
   problemId: string,
   versionId?: string
-): Promise<{ problem: ProblemDetail; version: ProblemVersion; mdxContent: string }> {
+): Promise<{ problem: ProblemDetail; version: ProblemVersion; mdxContent: string; mdxBody: string }> {
   const supabase = getSupabaseClient()
 
   // 1. Get Problem
@@ -92,6 +93,7 @@ export async function getProblemAndVersion(
   }
 
   const mdxContent = await mdxBlob.text()
+  const mdxBody = getMdxBody(mdxContent)
 
-  return { problem: problem as ProblemDetail, version: version as ProblemVersion, mdxContent }
+  return { problem: problem as ProblemDetail, version: version as ProblemVersion, mdxContent, mdxBody }
 }

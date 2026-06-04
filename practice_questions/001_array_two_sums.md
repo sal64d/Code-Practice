@@ -3,13 +3,39 @@ title: Two Sum
 difficulty: easy
 tags: ["array", "hash_table"]
 supportedLanguages: ["javascript"]
+runner:
+  mode: function
+  entrypoint: twoSum
+  compareReturns: unordered-array
+signature:
+  args:
+    - name: nums
+      type: int[]
+    - name: target
+      type: int
+  returns: int[]
+starterCode:
+  javascript: |
+    function twoSum(nums, target) {
+      // nums: number[], target: number → number[] (indices)
+    }
 tests:
-  - stdin: "[2, 7, 11, 15]\n9"
-    expectedStdout: "[0,1]"
-  - stdin: "[3, 2, 4]\n6"
-    expectedStdout: "[1,2]"
-  - stdin: "[3, 3]\n6"
-    expectedStdout: "[0,1]"
+  visible:
+    - name: sample 1
+      input:
+        nums: [2, 7, 11, 15]
+        target: 9
+      expected: [0, 1]
+    - name: sample 2
+      stdin: |
+        [3, 2, 4]
+        6
+      expected: [1, 2]
+    - name: sample 3
+      stdin: |
+        [3, 3]
+        6
+      expected: [0, 1]
 ---
 
 ## Problem Statement

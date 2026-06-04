@@ -1,107 +1,39 @@
 import { useState, useCallback } from 'react'
 
-export interface TestCase {
-  stdin: string
-  expectedStdout: string
-}
+import { serializeValue, valuesMatch } from './outputCompare.ts'
+import type { ResolvedTestCase, RunOptions, RunSummary, TestResult, WorkerRequest, WorkerResponse } from './types.ts'
 
-export interface TestResult {
-  index: number
-  stdin: string
-  expectedStdout: string
-  actualStdout: string
-  stderr?: string
-  passed: boolean
-  durationMs: number
-  status: 'passed' | 'failed' | 'runtime_error' | 'timeout'
-}
-
-export interface RunSummary {
-  passed: number
-  total: number
-  durationMs: number
-  stdoutBytes: number
-  results: TestResult[]
-}
-
-const TIMEOUT_MS = 2000
+const DEFAULT_TIMEOUT_MS = 2000
 
 export function useRunner() {
   const [isRunning, setIsRunning] = useState(false)
   const [runSummary, setRunSummary] = useState<RunSummary | null>(null)
 
-  const runCode = useCallback(async (code: string, testCases: TestCase[]) => {
+  const runCode = useCallback(async (code: string, options: RunOptions) => {
     setIsRunning(true)
     setRunSummary(null)
 
+    const timeoutMs = options.limits?.timeMs ?? DEFAULT_TIMEOUT_MS
     const results: TestResult[] = []
     let totalDuration = 0
-    let totalStdoutBytes = 0
+    let totalOutputBytes = 0
     let passedCount = 0
 
-    for (let i = 0; i < testCases.length; i++) {
-      const tc = testCases[i]
-      
-      const result = await new Promise<TestResult>((resolve) => {
-        // Instantiate a new worker for each test case
-        const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' })
-        
-        let timeoutId: any
-
-        worker.onmessage = (e) => {
-          clearTimeout(timeoutId)
-          const data = e.data
-          const actualStdout = (data.stdout || '').replace(/\r\n/g, '\n').trim()
-          const expectedStdout = tc.expectedStdout.replace(/\r\n/g, '\n').trim()
-
-          const passed = data.type === 'success' && actualStdout === expectedStdout
-
-          let status: TestResult['status'] = 'failed'
-          if (data.type === 'error') status = 'runtime_error'
-          else if (passed) status = 'passed'
-
-          resolve({
-            index: i,
-            stdin: tc.stdin,
-            expectedStdout: tc.expectedStdout,
-            actualStdout,
-            stderr: data.stderr,
-            passed,
-            status,
-            durationMs: data.durationMs || 0,
-          })
-          
-          totalStdoutBytes += data.stdoutBytes || 0
-          worker.terminate()
-        }
-
-        worker.postMessage({ code, stdin: tc.stdin })
-
-        timeoutId = setTimeout(() => {
-          worker.terminate()
-          resolve({
-            index: i,
-            stdin: tc.stdin,
-            expectedStdout: tc.expectedStdout,
-            actualStdout: '',
-            stderr: 'Execution timed out',
-            passed: false,
-            status: 'timeout',
-            durationMs: TIMEOUT_MS,
-          })
-        }, TIMEOUT_MS)
-      })
-
+    for (let i = 0; i < options.tests.length; i++) {
+      const testCase = options.tests[i]
+      const result = await runSingleTest(code, testCase, options, timeoutMs, i)
       results.push(result)
       totalDuration += result.durationMs
+      totalOutputBytes += result.debugOutput?.length ?? result.actualDisplay.length
       if (result.passed) passedCount++
     }
 
     const summary: RunSummary = {
+      mode: options.runner.mode,
       passed: passedCount,
-      total: testCases.length,
+      total: options.tests.length,
       durationMs: totalDuration,
-      stdoutBytes: totalStdoutBytes,
+      stdoutBytes: totalOutputBytes,
       results,
     }
 
@@ -112,3 +44,103 @@ export function useRunner() {
 
   return { runCode, isRunning, runSummary }
 }
+
+async function runSingleTest(
+  code: string,
+  testCase: ResolvedTestCase,
+  options: RunOptions,
+  timeoutMs: number,
+  index: number,
+): Promise<TestResult> {
+  const workerRequest: WorkerRequest = {
+    mode: testCase.mode,
+    code,
+    stdin: testCase.stdin,
+    entrypoint: options.runner.entrypoint,
+    args: testCase.args,
+  }
+
+  const workerResult = await new Promise<WorkerResponse>((resolve) => {
+    const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' })
+    let timeoutId: ReturnType<typeof setTimeout>
+
+    worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+      clearTimeout(timeoutId)
+      resolve(event.data)
+      worker.terminate()
+    }
+
+    worker.postMessage(workerRequest)
+
+    timeoutId = setTimeout(() => {
+      worker.terminate()
+      resolve({
+        type: 'error',
+        stderr: 'Execution timed out',
+        durationMs: timeoutMs,
+        stdoutBytes: 0,
+      })
+    }, timeoutMs)
+  })
+
+  return buildTestResult(testCase, workerResult, index)
+}
+
+function buildTestResult(
+  testCase: ResolvedTestCase,
+  workerResult: WorkerResponse,
+  index: number,
+): TestResult {
+  if (workerResult.type === 'error') {
+    return {
+      index,
+      name: testCase.name,
+      mode: testCase.mode,
+      inputDisplay: testCase.inputDisplay,
+      expectedDisplay: testCase.expectedDisplay,
+      actualDisplay: '',
+      debugOutput: workerResult.debugOutput,
+      stderr: workerResult.stderr,
+      passed: false,
+      status: workerResult.stderr === 'Execution timed out' ? 'timeout' : 'runtime_error',
+      durationMs: workerResult.durationMs,
+    }
+  }
+
+  if (testCase.mode === 'function') {
+    const actualDisplay = serializeValue(workerResult.returnValue)
+    const passed = valuesMatch(workerResult.returnValue, testCase.expected, testCase.compare)
+
+    return {
+      index,
+      name: testCase.name,
+      mode: 'function',
+      inputDisplay: testCase.inputDisplay,
+      expectedDisplay: testCase.expectedDisplay,
+      actualDisplay,
+      debugOutput: workerResult.debugOutput,
+      passed,
+      status: passed ? 'passed' : 'failed',
+      durationMs: workerResult.durationMs,
+    }
+  }
+
+  const actualStdout = (workerResult.stdout || '').replace(/\r\n/g, '\n').trim()
+  const expectedStdout = (testCase.expectedStdout || '').replace(/\r\n/g, '\n').trim()
+  const passed = actualStdout === expectedStdout
+
+  return {
+    index,
+    name: testCase.name,
+    mode: 'script',
+    inputDisplay: testCase.inputDisplay,
+    expectedDisplay: testCase.expectedDisplay,
+    actualDisplay: actualStdout,
+    debugOutput: workerResult.debugOutput,
+    passed,
+    status: passed ? 'passed' : 'failed',
+    durationMs: workerResult.durationMs,
+  }
+}
+
+export type { ResolvedTestCase, RunOptions, RunSummary, TestResult }

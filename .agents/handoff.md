@@ -8,18 +8,20 @@ This file is used to share context, progress, issues, and mistakes between diffe
 2. **Task Log File:** You MUST maintain a real-time task log file (e.g., `task.md` in the agent's artifacts directory or `.agents/task-log.md`) where you document everything you are doing *while* you are doing it. This ensures that if the agent session cuts off midway due to token limits, the next agent can seamlessly resume the work.
 
 ## Task Progress
-- **Completed**: Step 1 - Installing Storybook and MUI dependencies.
-- **Completed**: Step 2 & 3 - Design System Structure & Atoms.
-- **Completed**: Step 4 & 5 - Layout creation and page refactoring.
-- **Completed**: Step 6 - Verification and TypeScript fixes.
-- **Current Goal**: Split Design and Logic & Implement Storybook is fully COMPLETED.
+- **Completed**: Design system + Storybook (MUI split).
+- **Completed**: Function runner mode (US-036–US-039). See `tasks/function-runner-mode.md`.
+
+## Current Goal
+Resume thin-slice work: US-013 remote draft autosave, US-017 browser verification, or US-018+ post-thin-slice features.
 
 ## Issues Faced
-- *None yet.*
+- Seed script failed on re-run with `problem_versions_unique_number` — fixed by updating version 1 in place.
+- Problem page rendered raw YAML frontmatter as markdown; stale localStorage draft hid function-mode starter code — fixed by stripping frontmatter for display and including `content_hash` in draft key.
 
 ## Mistakes Made & Lessons Learned
-- *None yet.*
+- Script-mode stdin was a poor fit for array/function problems; function mode with `signature` + structured tests is the default for official problems going forward.
 
 ## Requested Changes
 - User requested to use MUI instead of shadcn/ui.
 - CodeMirror stays in the application logic layer, design system only provides `EditorContainer`.
+- Function runner mode implemented per `tasks/function-runner-mode.md`.

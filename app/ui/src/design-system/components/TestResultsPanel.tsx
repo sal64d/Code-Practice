@@ -3,11 +3,16 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
 
+import type { RunnerMode } from '../../lib/runner/types';
+
 export interface TestResult {
   index: number;
-  stdin: string;
-  expectedStdout: string;
-  actualStdout: string;
+  name?: string;
+  mode: RunnerMode;
+  inputDisplay: string;
+  expectedDisplay: string;
+  actualDisplay: string;
+  debugOutput?: string;
   stderr?: string;
   passed: boolean;
   durationMs: number;
@@ -15,6 +20,7 @@ export interface TestResult {
 }
 
 export interface RunSummary {
+  mode: RunnerMode;
   passed: number;
   total: number;
   durationMs: number;
@@ -24,9 +30,10 @@ export interface RunSummary {
 
 export interface TestResultsPanelProps {
   summary: RunSummary | null;
+  mode?: RunnerMode;
 }
 
-export function TestResultsPanel({ summary }: TestResultsPanelProps) {
+export function TestResultsPanel({ summary, mode = 'script' }: TestResultsPanelProps) {
   if (!summary) {
     return (
       <Box sx={{ p: 2 }}>
@@ -35,13 +42,18 @@ export function TestResultsPanel({ summary }: TestResultsPanelProps) {
     );
   }
 
+  const isFunctionMode = (summary.mode ?? mode) === 'function';
+
   return (
     <Box sx={{ p: 2, overflowY: 'auto', height: '100%' }}>
       <Typography variant="h6" gutterBottom>
         Results: {summary.passed} / {summary.total} passed
       </Typography>
       <Typography variant="body2" color="text.secondary" gutterBottom>
-        Duration: {summary.durationMs}ms | Output: {summary.stdoutBytes} bytes
+        Duration: {summary.durationMs}ms
+        {isFunctionMode
+          ? ' | Return value is judged; console.log is debug-only (local result, not verified judging).'
+          : ' | Local stdout result, not verified judging.'}
       </Typography>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
@@ -59,22 +71,36 @@ export function TestResultsPanel({ summary }: TestResultsPanelProps) {
               variant="subtitle2"
               sx={{ color: r.passed ? 'success.main' : 'error.main', mb: 1 }}
             >
-              Test Case {i + 1}: {r.status.toUpperCase()}
+              {r.name ?? `Test Case ${i + 1}`}: {r.status.toUpperCase()}
             </Typography>
+
             <Typography variant="caption" sx={{ display: 'block', fontWeight: 'bold' }}>Input:</Typography>
-            <Box component="pre" sx={{ m: 0, mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1, fontSize: '0.8rem', overflowX: 'auto' }}>
-              {r.stdin}
+            <Box component="pre" sx={{ m: 0, mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1, fontSize: '0.8rem', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+              {r.inputDisplay}
             </Box>
 
-            <Typography variant="caption" sx={{ display: 'block', fontWeight: 'bold' }}>Expected Output:</Typography>
+            <Typography variant="caption" sx={{ display: 'block', fontWeight: 'bold' }}>
+              {isFunctionMode ? 'Expected return:' : 'Expected output:'}
+            </Typography>
             <Box component="pre" sx={{ m: 0, mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1, fontSize: '0.8rem', overflowX: 'auto' }}>
-              {r.expectedStdout}
+              {r.expectedDisplay}
             </Box>
 
-            <Typography variant="caption" sx={{ display: 'block', fontWeight: 'bold' }}>Actual Output:</Typography>
+            <Typography variant="caption" sx={{ display: 'block', fontWeight: 'bold' }}>
+              {isFunctionMode ? 'Actual return:' : 'Actual output:'}
+            </Typography>
             <Box component="pre" sx={{ m: 0, mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1, fontSize: '0.8rem', overflowX: 'auto' }}>
-              {r.actualStdout || '(no output)'}
+              {r.actualDisplay || (isFunctionMode ? 'undefined' : '(no output)')}
             </Box>
+
+            {r.debugOutput && (
+              <>
+                <Typography variant="caption" sx={{ display: 'block', fontWeight: 'bold' }}>Debug output (console.log):</Typography>
+                <Box component="pre" sx={{ m: 0, mb: 1, p: 1, bgcolor: 'rgba(255,255,255,0.04)', borderRadius: 1, fontSize: '0.8rem', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                  {r.debugOutput}
+                </Box>
+              </>
+            )}
 
             {r.stderr && (
               <>

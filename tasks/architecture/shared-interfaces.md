@@ -85,31 +85,35 @@ interface ProblemFrontmatter {
   tags: string[];
   supportedLanguages: Language[];
   starterCode: Record<Language, string>;
+  runner?: {
+    mode: "script" | "function"; // default: script
+    entrypoint?: string; // required when mode=function
+    compareReturns?: "strict" | "unordered-array";
+  };
+  signature?: ProblemSignature;
   tests: {
     visible: VisibleTestCase[];
   };
   limits?: ProblemLimits;
-
-  // Optional future metadata. Not used by v1 stdin/stdout runners.
-  entrypoint?: string;
-  signature?: ProblemSignature;
 }
 
 interface VisibleTestCase {
   name?: string;
-  stdin: string;
-  stdout: string;
-}
-
-interface ProblemLimits {
-  timeMs?: number;
-  outputBytes?: number;
+  // script mode
+  stdin?: string;
+  stdout?: string;
+  // function mode
+  input?: Record<string, unknown>;
+  expected?: unknown;
+  compare?: "strict" | "unordered-array"; // overrides runner.compareReturns
 }
 
 interface ProblemSignature {
-  args: Array<{ name: string; type: string }>;
+  args: Array<{ name: string; type: ArgType }>;
   returns: string;
 }
+
+type ArgType = "int" | "float" | "string" | "bool" | "int[]" | "json";
 ```
 
 Validation:
@@ -120,8 +124,11 @@ Validation:
 - `supportedLanguages` contains at least one v1 language.
 - `starterCode` exists for every supported language.
 - `tests.visible` contains at least one test.
-- Every visible test has `stdin` and `stdout` strings.
+- Script mode: every visible test has `stdin` and `stdout`.
+- Function mode: requires `runner.entrypoint`, `signature.args`, and each test has `expected` plus `input` or parseable `stdin`.
 - No hidden tests in v1.
+
+Official repo problems default to **function mode** with LeetCode-style starter code.
 
 ## Problem Version Document
 
@@ -141,7 +148,7 @@ Draft versions use a client-generated `problemVersionId` before upload. `version
 
 ## Runner Contract
 
-Both languages use script-style stdin/stdout.
+Two modes: **script** (stdin/stdout) and **function** (LeetCode-style entrypoint + return value).
 
 ```ts
 interface RunRequest {
@@ -150,7 +157,13 @@ interface RunRequest {
   problemVersionId: ProblemVersionId;
   language: Language;
   code: string;
-  tests: VisibleTestCase[];
+  runner: {
+    mode: "script" | "function";
+    entrypoint?: string;
+    compareReturns?: "strict" | "unordered-array";
+  };
+  signature?: ProblemSignature;
+  tests: ResolvedTestCase[];
   limits: Required<ProblemLimits>;
 }
 
@@ -190,18 +203,26 @@ Default limits:
 - `timeMs`: 1000.
 - `outputBytes`: 65536.
 
-JavaScript runner API:
+JavaScript runner API (script mode):
 
 ```ts
 declare const stdin: string;
 declare function print(value?: unknown): void;
 ```
 
+JavaScript runner API (function mode):
+
+```ts
+// User defines entrypoint function, e.g. function twoSum(nums, target) { ... }
+// Runner calls entrypoint(...parsedArgs) and compares return value to expected.
+// console.log is captured as debug output only — does not affect pass/fail.
+```
+
 JavaScript behavior:
 
 - Run each test in a fresh dedicated Web Worker.
-- Provide global `stdin`.
-- Capture `print(...)` and `console.log(...)` as stdout.
+- **Script mode:** global `stdin`; capture `print(...)` and `console.log(...)` as stdout.
+- **Function mode:** resolve `runner.entrypoint`, call with parsed args; compare return value; `console.log` is debug-only.
 - Capture thrown errors as stderr.
 - Do not promise Node APIs, `require`, filesystem access, or npm packages.
 

@@ -19,9 +19,11 @@ export const Empty: Story = {
   },
 };
 
-export const WithResults: Story = {
+export const FunctionModeResults: Story = {
   args: {
+    mode: 'function',
     summary: {
+      mode: 'function',
       passed: 1,
       total: 2,
       durationMs: 45,
@@ -29,24 +31,53 @@ export const WithResults: Story = {
       results: [
         {
           index: 0,
-          stdin: '[2,7,11,15]\n9',
-          expectedStdout: '[0,1]',
-          actualStdout: '[0,1]',
+          name: 'sample 1',
+          mode: 'function',
+          inputDisplay: 'nums = [2,7,11,15]\ntarget = 9',
+          expectedDisplay: '[0,1]',
+          actualDisplay: '[0,1]',
+          debugOutput: 'checking map',
           passed: true,
           status: 'passed',
           durationMs: 12,
         },
         {
           index: 1,
-          stdin: '[3,2,4]\n6',
-          expectedStdout: '[1,2]',
-          actualStdout: '[0,2]',
-          stderr: 'Wrong answer',
+          name: 'sample 2',
+          mode: 'function',
+          inputDisplay: 'nums = [3,2,4]\ntarget = 6',
+          expectedDisplay: '[1,2]',
+          actualDisplay: '[0,2]',
           passed: false,
           status: 'failed',
           durationMs: 33,
-        }
-      ]
-    }
+        },
+      ],
+    },
+  },
+};
+
+export const ScriptModeResults: Story = {
+  args: {
+    mode: 'script',
+    summary: {
+      mode: 'script',
+      passed: 1,
+      total: 1,
+      durationMs: 20,
+      stdoutBytes: 8,
+      results: [
+        {
+          index: 0,
+          mode: 'script',
+          inputDisplay: 'hello',
+          expectedDisplay: 'hello',
+          actualDisplay: 'hello',
+          passed: true,
+          status: 'passed',
+          durationMs: 20,
+        },
+      ],
+    },
   },
 };
