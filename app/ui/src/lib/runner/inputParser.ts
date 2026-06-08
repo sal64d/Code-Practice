@@ -126,5 +126,5 @@ export function formatInputDisplay(labels: string[]): string {
 }
 
 export function formatExpectedDisplay(expected: unknown): string {
-  return JSON.stringify(expected)
+  return JSON.stringify(expected) ?? 'undefined'
 }

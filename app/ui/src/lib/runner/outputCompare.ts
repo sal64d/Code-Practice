@@ -1,7 +1,7 @@
 import type { CompareMode } from './types.ts'
 
 export function serializeValue(value: unknown): string {
-  return JSON.stringify(value)
+  return JSON.stringify(value) ?? 'undefined'
 }
 
 export function valuesMatch(actual: unknown, expected: unknown, compare: CompareMode): boolean {

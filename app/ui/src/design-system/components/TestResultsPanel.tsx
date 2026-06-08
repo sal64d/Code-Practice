@@ -52,7 +52,7 @@ export function TestResultsPanel({ summary, mode = 'script' }: TestResultsPanelP
       <Typography variant="body2" color="text.secondary" gutterBottom>
         Duration: {summary.durationMs}ms
         {isFunctionMode
-          ? ' | Return value is judged; console.log is debug-only (local result, not verified judging).'
+          ? ' | Function result is judged; console.log is debug-only (local result, not verified judging).'
           : ' | Local stdout result, not verified judging.'}
       </Typography>
 
@@ -80,14 +80,14 @@ export function TestResultsPanel({ summary, mode = 'script' }: TestResultsPanelP
             </Box>
 
             <Typography variant="caption" sx={{ display: 'block', fontWeight: 'bold' }}>
-              {isFunctionMode ? 'Expected return:' : 'Expected output:'}
+              {isFunctionMode ? 'Expected result:' : 'Expected output:'}
             </Typography>
             <Box component="pre" sx={{ m: 0, mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1, fontSize: '0.8rem', overflowX: 'auto' }}>
               {r.expectedDisplay}
             </Box>
 
             <Typography variant="caption" sx={{ display: 'block', fontWeight: 'bold' }}>
-              {isFunctionMode ? 'Actual return:' : 'Actual output:'}
+              {isFunctionMode ? 'Actual result:' : 'Actual output:'}
             </Typography>
             <Box component="pre" sx={{ m: 0, mb: 1, p: 1, bgcolor: 'background.paper', borderRadius: 1, fontSize: '0.8rem', overflowX: 'auto' }}>
               {r.actualDisplay || (isFunctionMode ? 'undefined' : '(no output)')}

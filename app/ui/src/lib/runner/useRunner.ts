@@ -62,17 +62,7 @@ async function runSingleTest(
 
   const workerResult = await new Promise<WorkerResponse>((resolve) => {
     const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' })
-    let timeoutId: ReturnType<typeof setTimeout>
-
-    worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
-      clearTimeout(timeoutId)
-      resolve(event.data)
-      worker.terminate()
-    }
-
-    worker.postMessage(workerRequest)
-
-    timeoutId = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       worker.terminate()
       resolve({
         type: 'error',
@@ -81,6 +71,14 @@ async function runSingleTest(
         stdoutBytes: 0,
       })
     }, timeoutMs)
+
+    worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+      clearTimeout(timeoutId)
+      resolve(event.data)
+      worker.terminate()
+    }
+
+    worker.postMessage(workerRequest)
   })
 
   return buildTestResult(testCase, workerResult, index)
@@ -108,8 +106,8 @@ function buildTestResult(
   }
 
   if (testCase.mode === 'function') {
-    const actualDisplay = serializeValue(workerResult.returnValue)
-    const passed = valuesMatch(workerResult.returnValue, testCase.expected, testCase.compare)
+    const actualDisplay = buildFunctionActualDisplay(testCase, workerResult)
+    const passed = functionResultMatches(testCase, workerResult)
 
     return {
       index,
@@ -141,6 +139,45 @@ function buildTestResult(
     status: passed ? 'passed' : 'failed',
     durationMs: workerResult.durationMs,
   }
+}
+
+function functionResultMatches(testCase: ResolvedTestCase, workerResult: WorkerResponse): boolean {
+  const returnMatches =
+    !testCase.expectsReturn || valuesMatch(workerResult.returnValue, testCase.expected, testCase.compare)
+
+  const argsMatch = (testCase.expectedArgs ?? []).every((assertion) => {
+    const actualArg = workerResult.args?.[assertion.index]
+    if (assertion.kind === 'prefix') {
+      if (!Array.isArray(actualArg) || !Array.isArray(assertion.expected)) return false
+      return valuesMatch(
+        actualArg.slice(0, assertion.expected.length),
+        assertion.expected,
+        assertion.compare,
+      )
+    }
+    return valuesMatch(actualArg, assertion.expected, assertion.compare)
+  })
+
+  return returnMatches && argsMatch
+}
+
+function buildFunctionActualDisplay(testCase: ResolvedTestCase, workerResult: WorkerResponse): string {
+  const lines: string[] = []
+  if (testCase.expectsReturn) {
+    lines.push(`return = ${serializeValue(workerResult.returnValue)}`)
+  }
+
+  for (const assertion of testCase.expectedArgs ?? []) {
+    const actualArg = workerResult.args?.[assertion.index]
+    const actualValue =
+      assertion.kind === 'prefix' && Array.isArray(actualArg) && Array.isArray(assertion.expected)
+        ? actualArg.slice(0, assertion.expected.length)
+        : actualArg
+    const label = assertion.kind === 'prefix' ? `${assertion.name} prefix` : assertion.name
+    lines.push(`${label} = ${serializeValue(actualValue)}`)
+  }
+
+  return lines.length > 0 ? lines.join('\n') : serializeValue(workerResult.returnValue)
 }
 
 export type { ResolvedTestCase, RunOptions, RunSummary, TestResult }

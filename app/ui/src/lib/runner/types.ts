@@ -2,7 +2,7 @@ export type RunnerMode = 'script' | 'function'
 
 export type ArgType = 'int' | 'float' | 'string' | 'bool' | 'int[]' | 'json'
 
-export type CompareMode = 'strict' | 'unordered-array'
+export type CompareMode = 'strict' | 'exact' | 'unordered-array'
 
 export interface SignatureArg {
   name: string
@@ -27,7 +27,22 @@ export interface RawVisibleTestCase {
   expectedStdout?: string
   input?: Record<string, unknown>
   expected?: unknown
+  expectedArgs?: Record<string, RawExpectedArgAssertion>
   compare?: CompareMode
+}
+
+export interface RawExpectedArgAssertion {
+  exact?: unknown
+  prefix?: unknown[]
+  compare?: CompareMode
+}
+
+export interface ExpectedArgAssertion {
+  name: string
+  index: number
+  kind: 'exact' | 'prefix'
+  expected: unknown
+  compare: CompareMode
 }
 
 export interface ProblemRunnerFrontmatter {
@@ -47,7 +62,9 @@ export interface ResolvedTestCase {
   /** Function mode */
   args?: unknown[]
   argLabels?: string[]
+  expectsReturn?: boolean
   expected?: unknown
+  expectedArgs?: ExpectedArgAssertion[]
   compare: CompareMode
   /** Display string for UI */
   inputDisplay: string
@@ -66,6 +83,7 @@ export interface WorkerResponse {
   type: 'success' | 'error'
   stdout?: string
   returnValue?: unknown
+  args?: unknown[]
   debugOutput?: string
   stderr?: string
   durationMs: number

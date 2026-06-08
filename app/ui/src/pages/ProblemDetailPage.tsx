@@ -42,7 +42,7 @@ function VisibleTestsPreview({
               {test.inputDisplay}
             </Box>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-              Expected {mode === 'function' ? 'return' : 'output'}
+              Expected {mode === 'function' ? 'result' : 'output'}
             </Typography>
             <Box component="pre" sx={{ m: 0, fontSize: '0.75rem' }}>
               {test.expectedDisplay}

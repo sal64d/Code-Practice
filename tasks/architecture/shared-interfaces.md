@@ -88,7 +88,7 @@ interface ProblemFrontmatter {
   runner?: {
     mode: "script" | "function"; // default: script
     entrypoint?: string; // required when mode=function
-    compareReturns?: "strict" | "unordered-array";
+    compareReturns?: "strict" | "exact" | "unordered-array";
   };
   signature?: ProblemSignature;
   tests: {
@@ -105,7 +105,14 @@ interface VisibleTestCase {
   // function mode
   input?: Record<string, unknown>;
   expected?: unknown;
-  compare?: "strict" | "unordered-array"; // overrides runner.compareReturns
+  expectedArgs?: Record<string, ExpectedArgAssertion>;
+  compare?: "strict" | "exact" | "unordered-array"; // overrides runner.compareReturns
+}
+
+interface ExpectedArgAssertion {
+  exact?: unknown;
+  prefix?: unknown[];
+  compare?: "strict" | "exact" | "unordered-array";
 }
 
 interface ProblemSignature {
@@ -125,7 +132,7 @@ Validation:
 - `starterCode` exists for every supported language.
 - `tests.visible` contains at least one test.
 - Script mode: every visible test has `stdin` and `stdout`.
-- Function mode: requires `runner.entrypoint`, `signature.args`, and each test has `expected` plus `input` or parseable `stdin`.
+- Function mode: requires `runner.entrypoint`, `signature.args`, and each test has `expected` and/or `expectedArgs` plus `input` or parseable `stdin`.
 - No hidden tests in v1.
 
 Official repo problems default to **function mode** with LeetCode-style starter code.
@@ -160,7 +167,7 @@ interface RunRequest {
   runner: {
     mode: "script" | "function";
     entrypoint?: string;
-    compareReturns?: "strict" | "unordered-array";
+    compareReturns?: "strict" | "exact" | "unordered-array";
   };
   signature?: ProblemSignature;
   tests: ResolvedTestCase[];
@@ -214,7 +221,8 @@ JavaScript runner API (function mode):
 
 ```ts
 // User defines entrypoint function, e.g. function twoSum(nums, target) { ... }
-// Runner calls entrypoint(...parsedArgs) and compares return value to expected.
+// Runner calls entrypoint(...parsedArgs), compares return value to expected when present,
+// and can compare configured post-call argument values for in-place problems.
 // console.log is captured as debug output only — does not affect pass/fail.
 ```
 

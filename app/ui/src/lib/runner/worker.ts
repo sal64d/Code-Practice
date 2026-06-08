@@ -93,6 +93,7 @@ function runFunctionMode(request: WorkerRequest) {
     postResult({
       type: 'success',
       returnValue,
+      args,
       debugOutput: debugLines.join('\n'),
       durationMs: Math.round(end - start),
       stdoutBytes: debugBytes,
